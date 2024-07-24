@@ -5,21 +5,29 @@ import pretty_midi
 from scipy.io import wavfile
 import soundfile as sf
 
+
 # ノイズリダクション関数
 def reduce_noise(y, sr):
+    # hop_length を計算（デフォルト値を使用）
+    hop_length = 512
+
     # スペクトログラムを計算
-    S = librosa.stft(y)
+    S = librosa.stft(y, hop_length=hop_length)
+
     # ノイズプロファイルを推定（最初の0.5秒を使用）
-    noise_profile = np.mean(np.abs(S[:, :int(0.5 * sr / librosa.hop_length)]), axis=1)
+    noise_profile = np.mean(np.abs(S[:, : int(0.5 * sr / hop_length)]), axis=1)
+
     # スペクトル減算
     S_reduced = S - noise_profile[:, np.newaxis]
     S_reduced = np.maximum(S_reduced, 0)  # 負の値を0に設定
+
     # 逆STFTを適用して時間領域信号に戻す
-    y_reduced = librosa.istft(S_reduced)
+    y_reduced = librosa.istft(S_reduced, hop_length=hop_length)
     return y_reduced
 
+
 # 1. 音声ファイルを読み込む
-y, sr = librosa.load('humming.wav', duration=10)  # 10秒に制限
+y, sr = librosa.load("./record/sad/sad.wav", duration=10)  # 10秒に制限
 
 # 2. ノイズリダクションを適用
 y_reduced = reduce_noise(y, sr)
@@ -49,20 +57,22 @@ midi.addTrackName(track, time, "Humming to Piano")
 midi.addTempo(track, time, 120)
 
 for note in midi_notes:
-    midi.addNote(track, 0, int(round(note)), time, 0.25, 100)  # ノートの長さを0.25秒に設定
+    midi.addNote(
+        track, 0, int(round(note)), time, 0.25, 100
+    )  # ノートの長さを0.25秒に設定
     time += 0.25
 
 # MIDI ファイルを保存
-with open("piano_output.mid", "wb") as output_file:
+with open("./record/sad/piano_output.mid", "wb") as output_file:
     midi.writeFile(output_file)
 
 # 7. MIDI を WAV に変換
-midi_data = pretty_midi.PrettyMIDI('piano_output.mid')
+midi_data = pretty_midi.PrettyMIDI("./record/sad/piano_output.mid")
 audio_data = midi_data.synthesize(fs=44100)
-wavfile.write('piano_output.wav', 44100, (audio_data * 32767).astype(np.int16))
+wavfile.write("./record/sad/piano_output.wav", 44100, (audio_data * 32767).astype(np.int16))
 
 # 8. ノイズリダクション後の音声を保存（オプション）
-sf.write('humming_reduced_noise.wav', y_reduced, sr)
+sf.write("humming_reduced_noise.wav", y_reduced, sr)
 
-print("変換が完了しました。'piano_output.wav'が生成されました。")
+print("変換が完了しました。'./record/sad/piano_output.wav'が生成されました。")
 print("ノイズリダクション後の音声が'humming_reduced_noise.wav'として保存されました。")
